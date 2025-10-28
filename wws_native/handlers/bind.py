@@ -2,22 +2,25 @@
 from nonebot import on_command
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
-from nonebot.adapters.onebot.v11 import MessageEvent, Message
+from nonebot.adapters import Bot, Event, Message
 
-# 从被改造的 WutheringWavesUID 项目中导入绑定逻辑函数
+from . import get_adapter
 from ..WutheringWavesUID.wutheringwaves_user.deal import bind_user
 
 bind_matcher = on_command("鸣潮绑定", aliases={"wws绑定", "ww绑定"}, priority=10, block=True)
 
-
 @bind_matcher.handle()
-async def _(matcher: Matcher, event: MessageEvent, args: Message = CommandArg()):
-  uid_to_bind = args.extract_plain_text().strip()
+async def _(matcher: Matcher, bot: Bot, event: Event, args: Message = CommandArg()):
+    AdapterClass = get_adapter(bot)
+    if not AdapterClass:
+        return
+    adapter = AdapterClass(bot, event, matcher)
 
-  if not uid_to_bind or not uid_to_bind.isdigit():
-    await matcher.finish("请输入正确的UID！格式：鸣潮绑定 123456789")
+    uid_to_bind = args.extract_plain_text().strip()
+    if not uid_to_bind or not uid_to_bind.isdigit():
+        await adapter.reply("请输入正确的UID！格式：鸣潮绑定 123456789")
+        return
 
-  # 调用原项目的绑定逻辑，它内部会调用我们重写的数据库函数
-  # 并返回一个字符串作为结果
-  result_msg = await bind_user(user_id=event.user_id, uid=int(uid_to_bind))
-  await matcher.finish(result_msg)
+    # 注意：bind_user 现在需要接收 adapter 对象
+    result_msg = await bind_user(adapter, int(uid_to_bind))
+    await adapter.reply(result_msg)
