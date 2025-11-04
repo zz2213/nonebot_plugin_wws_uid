@@ -60,6 +60,9 @@ class OneBotV11Protocol(AbstractProtocol, protocol_name="onebot"):
     def __init__(self, bot: "Bot"):
         super().__init__(bot)
 
+    async def handle_send(self, msg: MessageReceive):
+      #TODO await send_message()
+
     async def handle_notice(self, event: "NoticeEvent"):
         from nonebot.adapters.onebot.v11 import GroupUploadNoticeEvent
 

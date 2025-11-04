@@ -1,3 +1,4 @@
+## 数据包格式可以参考
 """[早柚协议](https://docs.sayu-bot.com/CodeAdapter/Protocol.html)数据包结构。"""
 from __future__ import annotations
 

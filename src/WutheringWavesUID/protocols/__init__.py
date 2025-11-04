@@ -39,6 +39,13 @@ class AbstractProtocol(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    async def handle_send(
+        self,
+        message: MessageReceive,
+    ):
+        raise NotImplementedError
+
+    @abc.abstractmethod
     async def send_message(
         self,
         message: list[Message],
