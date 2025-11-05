@@ -1,99 +1,98 @@
-# WutheringWavesUID/handlers/login.py
-from nonebot import on_command, on_regex
-from nonebot.matcher import Matcher
+import asyncio
+import hashlib
+import re
+import uuid
+from pathlib import Path
+from typing import Union
+
+from nonebot import on_command
+from nonebot.adapters import Bot, Event
 from nonebot.params import CommandArg
-from nonebot.adapters import Bot, Event, Message
-from . import create_adapter
+from nonebot.typing import T_State
+from nonebot.adapters.onebot.v11 import Message
 
-# 导入重构后的核心逻辑
-from ..core_logic import api as wwapi
-from ..core_logic.models import UserData, LoginResult  # 导入 Pydantic 模型
-from ..adapters import MessageAdapter
-from .user import bind_user  # 导入重构后的绑定函数
+from ..core_logic.api import waves_api
+from ..core_logic.models import APIResponse
+from ..utils.cache import TimedCache
+from ..utils.login_helpers import (
+  get_url, get_token, send_login, page_login_local,
+  page_login_other, add_cookie, login_success_msg
+)
+
+# 缓存
+cache = TimedCache(timeout=600, maxsize=10)
+
+game_title = "[鸣潮]"
+msg_error = "[鸣潮] 登录失败\n1.是否注册过库街区\n2.库街区能否查询当前鸣潮特征码数据\n"
+
+# 登录命令
+login_cmd = on_command("鸣潮登录", aliases={"waves登录", "鸣潮login"}, priority=5)
 
 
-# --- 鸣潮登录 (二维码) ---
-# [修正]：将 .handle() 正确地作为装饰器应用
-@on_command(
-    "鸣潮登录", aliases={"wws登录", "ww登录"}, priority=10, block=True
-).handle()
-async def _login(matcher: Matcher, bot: Bot, event: Event):
-  adapter = create_adapter(bot, event, matcher)
-  if not adapter: return
+@login_cmd.handle()
+async def handle_login(bot: Bot, event: Event):
+  """处理登录命令"""
+  await page_login(bot, event)
 
-  user_id = int(adapter.get_user_id())
 
+# 验证码登录命令
+code_login_cmd = on_command("鸣潮验证码登录", aliases={"waves验证码登录"}, priority=5)
+
+
+@code_login_cmd.handle()
+async def handle_code_login(bot: Bot, event: Event, args: Message = CommandArg()):
+  """处理验证码登录"""
+  text = args.extract_plain_text().strip()
+  if text:
+    await code_login(bot, event, text)
+
+
+async def page_login(bot: Bot, event: Event):
+  """页面登录处理"""
+  url, is_local = await get_url()
+
+  if is_local:
+    await page_login_local(bot, event, url)
+  else:
+    await page_login_other(bot, event, url)
+
+
+async def code_login(bot: Bot, event: Event, text: str, isPage: bool = False):
+  """验证码登录处理"""
+  # 手机+验证码
   try:
-    await adapter.reply("正在获取登录二维码...")
-    # 调用重构后的 API
-    resp_data = await wwapi.login(user_id, "")
-    resp = LoginResult.model_validate(resp_data)  # 转换为 Pydantic 模型
-
-    if not resp.url:
-      await adapter.reply("获取二维码失败，请稍后再试。")
-      return
-
-    # 这就是您记忆中的“链接”
-    await adapter.reply(f"请扫描二维码登录: {resp.url}")
-
-  except Exception as e:
-    await adapter.reply(f"登录失败: {e}")
-
-
-# --- 手机号登录 ---
-# [修正]：将 .handle() 正确地作为装饰器应用
-@on_command("手机号登录", priority=10, block=True).handle()
-async def _phone_login(matcher: Matcher, bot: Bot, event: Event, args: Message = CommandArg()):
-  adapter = create_adapter(bot, event, matcher)
-  if not adapter: return
-
-  user_id = int(adapter.get_user_id())
-  phone = args.extract_plain_text().strip()
-
-  if not phone.isdigit() or len(phone) != 11:
-    await adapter.reply("手机号格式不正确，请输入11位手机号。")
+    phone_number, code = text.split(",")
+    if not is_valid_chinese_phone_number(phone_number):
+      raise ValueError("Invalid phone number")
+  except ValueError:
+    await bot.send(
+        event,
+        f"{game_title} 手机号+验证码登录失败\n\n请参照以下格式:\n鸣潮登录 手机号,验证码\n"
+    )
     return
 
-  try:
-    await adapter.reply(f"正在获取{phone}的验证码,请等待...")
-    resp_data = await wwapi.login(user_id, phone)
-    resp = LoginResult.model_validate(resp_data)
+  did = str(uuid.uuid4()).upper()
+  result = await waves_api.login(phone_number, code, did)
 
-    if not resp.code:
-      await adapter.reply(f"获取验证码失败: {resp.msg or '未知错误'}")
-      return
+  if not result.get("success", False):
+    return await bot.send(event, msg_error)
 
-    await adapter.reply(f"{phone}的验证码为 {resp.code}, 请在120s内输入:")
+  if not result.get("data") or not isinstance(result["data"], dict):
+    return await bot.send(event, "登录失败: 响应数据格式错误")
 
-    # --- [原生实现] sv.wait_for ---
-    code_input = await adapter.wait_for_message(timeout=120, regex=r"^\d{6}$")
-    if not code_input:
-      return  # 超时或格式错误，adapter.wait_for_message 已回复
-    # --- 替换结束 ---
+  token = result["data"].get("token", "")
+  waves_user = await add_cookie(event, token, did)
 
-    await adapter.reply("验证码已收到，正在登录...")
-    resp_data = await wwapi.login(user_id, phone, code_input)
-    resp = LoginResult.model_validate(resp_data)
-
-    if not resp.uid:
-      await adapter.reply(f"登录失败: {resp.msg or '未获取到UID'}")
-      return
-
-    await adapter.reply(f"登录成功！UID: {resp.uid}，正在为您自动绑定...")
-    # 调用重构后的 bind_user
-    result = await bind_user(adapter, resp.uid)
-    await adapter.reply(result)
-
-  except Exception as e:
-    await adapter.reply(f"登录时发生错误: {e}")
+  if waves_user and isinstance(waves_user, WwsUser):
+    return await login_success_msg(bot, event, waves_user)
+  else:
+    if isinstance(waves_user, str):
+      return await bot.send(event, waves_user)
+    else:
+      return await bot.send(event, msg_error)
 
 
-# --- 验证码接收器 ---
-# [修正]：将 .handle() 正确地作为装饰器应用
-@on_regex(r"^\d{6}$", priority=6, block=True).handle()
-async def _handle_code(matcher: Matcher, bot: Bot, event: Event):
-  # 这是一个““哑””处理器
-  # 它的作用是捕获 6 位数字，但什么也不做
-  # 真正的逻辑在 _phone_login 函数的 adapter.wait_for_message() 中处理
-  # 它的存在是为了确保 wait_for_message 能正确接收到事件
-  pass
+def is_valid_chinese_phone_number(phone_number: str) -> bool:
+  """验证手机号格式"""
+  pattern = re.compile(r"^1[3-9]\d{9}$")
+  return pattern.match(phone_number) is not None

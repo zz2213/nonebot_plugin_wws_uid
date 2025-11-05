@@ -1,31 +1,16 @@
-import io
-from typing import Union
-from PIL import Image
-from nonebot.adapters.onebot.v11 import MessageSegment, MessageEvent, Message
-from . import MessageAdapter
+from nonebot.adapters.onebot.v11 import MessageSegment
 
 
-class OneBotV11Adapter(MessageAdapter):
-  """OneBot v11 协议的适配器实现"""
+class OneBotV11Adapter:
+  """OneBot V11适配器"""
 
-  def __init__(self, bot, event, matcher):
-    if not isinstance(event, MessageEvent):
-      raise TypeError("OneBotV11Adapter 必须接收 MessageEvent")
-    super().__init__(bot, event, matcher)
-    self._event: MessageEvent = event
+  @staticmethod
+  def image(path: str) -> MessageSegment:
+    """图片消息段"""
+    return MessageSegment.image(f"file:///{path}")
 
-  def get_user_id(self) -> str:
-    return str(self._event.user_id)
-
-  def get_group_id(self) -> str | None:
-    return str(self._event.group_id) if hasattr(self._event, "group_id") else None
-
-  async def reply(self, message: Union[str, Image.Image, MessageSegment]):
-    if isinstance(message, str):
-      await self._matcher.send(message)
-    elif isinstance(message, Image.Image):
-      img_bytes = io.BytesIO()
-      message.save(img_bytes, format="PNG")
-      await self._matcher.send(MessageSegment.image(img_bytes.getvalue()))
-    elif isinstance(message, MessageSegment):
-      await self._matcher.send(Message(message))
+  @staticmethod
+  def node(messages: list) -> MessageSegment:
+    """转发消息节点"""
+    # 简化实现，实际可能需要更复杂的处理
+    return MessageSegment.node(messages)

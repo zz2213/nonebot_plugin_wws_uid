@@ -1,23 +1,13 @@
-# wws_native/core_logic/models.py
 from pydantic import BaseModel
-from typing import Optional
+from typing import Any, Dict
 
-# [重构] 移除 tortoise 和 gsuid_core 依赖
-# 这些类现在是纯粹的数据容器，用于类型注解
 
-class UserData:
-    """空实现，用于满足 import"""
-    pass
+class APIResponse(BaseModel):
+  """API响应模型"""
+  success: bool
+  data: Dict[str, Any] = {}
+  msg: str = ""
 
-class UserBind:
-    """空实现，用于满足 import"""
-    pass
-
-# --- 移植自 WutheringWavesUID/utils/api/model.py ---
-# 这是登录功能所必需的
-class LoginResult(BaseModel):
-    code: str
-    uid: Optional[int] = None
-    msg: str
-    token: Optional[str] = None
-    data: Optional[str] = None
+  def throw_msg(self) -> str:
+    """抛出错误消息"""
+    return self.msg if self.msg else "API请求失败"
