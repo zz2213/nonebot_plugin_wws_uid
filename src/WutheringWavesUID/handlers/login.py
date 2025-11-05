@@ -1,4 +1,4 @@
-# wws_native/handlers/login.py
+# WutheringWavesUID/handlers/login.py
 from nonebot import on_command, on_regex
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
@@ -11,12 +11,12 @@ from ..core_logic.models import UserData, LoginResult  # 导入 Pydantic 模型
 from ..adapters import MessageAdapter
 from .user import bind_user  # 导入重构后的绑定函数
 
-# 注册 "鸣潮登录" 指令
-on_command(
+
+# --- 鸣潮登录 (二维码) ---
+# [修正]：将 .handle() 正确地作为装饰器应用
+@on_command(
     "鸣潮登录", aliases={"wws登录", "ww登录"}, priority=10, block=True
 ).handle()
-
-
 async def _login(matcher: Matcher, bot: Bot, event: Event):
   adapter = create_adapter(bot, event, matcher)
   if not adapter: return
@@ -33,16 +33,16 @@ async def _login(matcher: Matcher, bot: Bot, event: Event):
       await adapter.reply("获取二维码失败，请稍后再试。")
       return
 
+    # 这就是您记忆中的“链接”
     await adapter.reply(f"请扫描二维码登录: {resp.url}")
 
   except Exception as e:
     await adapter.reply(f"登录失败: {e}")
 
 
-# 注册 "手机号登录" 指令
-on_command("手机号登录", priority=10, block=True).handle()
-
-
+# --- 手机号登录 ---
+# [修正]：将 .handle() 正确地作为装饰器应用
+@on_command("手机号登录", priority=10, block=True).handle()
 async def _phone_login(matcher: Matcher, bot: Bot, event: Event, args: Message = CommandArg()):
   adapter = create_adapter(bot, event, matcher)
   if not adapter: return
@@ -88,10 +88,12 @@ async def _phone_login(matcher: Matcher, bot: Bot, event: Event, args: Message =
     await adapter.reply(f"登录时发生错误: {e}")
 
 
-# 注册一个空的验证码接收器，防止被其他插件抢先
-# 实际逻辑由 adapter.wait_for_message 处理
-on_regex(r"^\d{6}$", priority=6, block=True).handle()
-
-
-async def _(matcher: Matcher, bot: Bot, event: Event):
+# --- 验证码接收器 ---
+# [修正]：将 .handle() 正确地作为装饰器应用
+@on_regex(r"^\d{6}$", priority=6, block=True).handle()
+async def _handle_code(matcher: Matcher, bot: Bot, event: Event):
+  # 这是一个““哑””处理器
+  # 它的作用是捕获 6 位数字，但什么也不做
+  # 真正的逻辑在 _phone_login 函数的 adapter.wait_for_message() 中处理
+  # 它的存在是为了确保 wait_for_message 能正确接收到事件
   pass
