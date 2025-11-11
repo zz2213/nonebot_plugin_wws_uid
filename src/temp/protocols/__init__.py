@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from typing import ClassVar
 
-from ..sayu_protocol import Message, MessageReceive
+from src.temp.sayu_protocol import Message, MessageReceive
 
 from nonebot import logger
 from nonebot.adapters import Bot, Event

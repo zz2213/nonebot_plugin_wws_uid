@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from .protocols import AbstractProtocol
-from .sayu_protocol import GsClient, MessageReceive, MessageSend
+from src.temp.protocols import AbstractProtocol
+from src.temp.sayu_protocol import GsClient, MessageReceive, MessageSend
 
 from nonebot import logger
 
