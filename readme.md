@@ -232,135 +232,71 @@ user = await user_service.get_user(user_id, bot_id)
 3.  **迁移 `draw_*.py`**：将所有绘图逻辑（视图 View）迁移过来，并改造它们，让它们的数据源从原来的直接调用 API 改为调用你的 `services` 层。
 4.  **迁移 `__init__.py`**：将原项目各个模块 `__init__.py` 中的命令注册（控制器 Controller）迁移到你的 `handlers` 目录中。
 
-这里是一个详细的、分阶段的迁移计划清单，你可以按照这个步骤逐一完成：
+🌟 迁移计划
+🏛️ 阶段 0：基础建设 (资源与数据) (✅)
+[✅] 迁移所有 Assets (texture2d) (按模块分离到 assets/images/ 下)
 
----
+[✅] 迁移字体 (到 assets/fonts/)
 
-### 🏛️ 阶段 0：基础建设 (资源与数据) (✅)
+[✅] 迁移核心游戏数据 (map) (到 core/data/)
 
-在开始编码前，先把所有的“静态资源”都移动到新插件的正确位置。
+[✅] 迁移别名数据 (alias) (到 core/data/alias/)
 
-* [ ] **迁移所有 Assets (`texture2d`)**： (✅)
-  * 原项目中**所有**的 `wutheringwaves_*/texture2d/` 目录下的图片资源（背景、图标、UI元素）。
-  * **目标**：全部复制并合并到 `nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/assets/images/` 目录下（你可以新建一个 `images` 子目录来存放）。
-* [ ] **迁移字体**：(✅)
-  * **来源**：`WutheringWavesUID1/utils/fonts/`
-  * **目标**：`nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/assets/fonts/`
-  * *(你似乎已经完成了这一步，目标目录已存在)*
-* [ ] **迁移核心游戏数据 (`map`)**：(✅)
-  * 这是**最重要**的数据。
-  * **来源**：`WutheringWavesUID1/utils/map/`
-  * **目标**：`nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/data/` (建议新建一个 `data` 目录)
-  * *注意：这个目录下的 `damage/` 子目录是伤害计算脚本，也一起移过去。*
-* [ ] **迁移别名数据 (`alias`)**：(✅)
-  * **来源**：`WutheringWavesUID1/utils/alias/`
-  * **目标**：`nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/data/alias/`
+🛠️ 阶段 1：核心工具迁移 (Utilities) (✅)
+[✅] 迁移字体工具 (core/utils/fonts.py)
 
----
+[✅] 迁移绘图工具 (重构 imagetool.py 和 image.py，移除 gsuid_core 依赖，合并为 core/utils/image_helpers.py 和 drawing_helpers.py)
 
-### 🛠️ 阶段 1：核心工具迁移 (Utilities) 
+[✅] 迁移伤害计算 (迁移 utils/damage 和 utils/ascension 到 core/damage 和 core/ascension，并适配路径)
 
-现在，迁移所有绘图、计算和数据管理的基础工具。
+[✅] 迁移别名服务 (创建 services/alias_service.py 和 handlers/alias.py)
 
-* [ ] **迁移绘图工具**： (✅)
-  * **来源**：`WutheringWavesUID1/utils/imagetool.py` 和 `WutheringWavesUID1/utils/image.py`。
-  * **目标**：将它们的代码合并/移动到 `nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/utils/drawing.py` (建议新建一个 `drawing.py`)。
-  * **适配**：你需要修改这个文件，使其能正确加载 `assets/fonts/` 里的字体。
-* [ ] **迁移字体工具**：(✅)
-  * **来源**：`WutheringWavesUID1/utils/fonts/waves_fonts.py`
-  * **目标**：`nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/utils/fonts.py` (建议新建)
-  * **适配**：修改文件内的路径，使其指向 `assets/fonts/`。
-* [ ] **迁移伤害计算**：(✅)
-  * **来源**：`WutheringWavesUID1/utils/damage/`
-  * **目标**：`nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/damage/` (建议新建)
-  * **适配**：这个模块比较独立，但你需要修改它的`import`语句，使其能正确读取 `core/data/` 目录下的数据。
-* [ ] **迁移别名服务**：(✅)
-  * **来源**：`WutheringWavesUID1/wutheringwaves_alias/char_alias_ops.py`
-  * **目标**：在 `services/` 下新建 `alias_service.py`，将功能迁移过去。
-  * **适配**：修改代码，使其读取 `core/data/alias/` 下的 JSON 文件。
+🖼️ 阶段 2：核心功能迁移 (1) - 角色面板 (✅)
+[✅] 迁移数据处理逻辑 (创建 services/character_service.py 和 core/utils/scoring.py)
 
----
+[✅] 迁移绘图逻辑 (创建 core/drawing/character_card.py 并重构)
 
-### 🖼️ 阶段 2：核心功能迁移 (1) - 角色面板
+[✅] 创建 Handler (创建 handlers/character.py)
 
-这是最复杂的功能，一旦完成，其他功能就触类旁通了。
+🏆 阶段 3：核心功能迁移 (2) - 排行榜 (✅)
+[✅] 迁移 API 封装 (创建 core/api/ranking_api.py)
 
-* [ ] **迁移数据处理逻辑**：
-  * **来源**：`WutheringWavesUID1/utils/char_info_utils.py` 和 `WutheringWavesUID1/utils/refresh_char_detail.py`。
-  * **目标**：在 `services/` 下新建 `character_service.py`。
-  * **适配**：将这些文件中的 *数据处理* 函数（如计算声骸评分、转换数据结构）移入新的 service。这个 Service 应该**依赖 `GameService`** 来获取原始数据，然后对原始数据进行处理和计算。
-* [ ] **迁移绘图逻辑**：
-  * **来源**：`WutheringWavesUID1/wutheringwaves_charinfo/draw_char_card.py`。
-  * **目标**：在 `core/` 下新建 `drawing/` 目录，并创建 `character_card.py`，将代码复制进去。
-* [ ] **重构绘图逻辑 (`character_card.py`)**：
-  * **数据源**：修改 `draw_char_card` 函数，它的参数不应该是原始 API 数据，而应该是你 `character_service.py` 处理后的标准数据模型。
-  * **Imports**：将所有 `from ..utils.imagetool import ...` 修改为 `from ..core.utils.drawing import ...`。
-  * **资源路径**：将所有硬编码的 `texture2d/` 路径，修改为从 `assets/images/` 读取（最好通过一个统一的资源管理函数）。
-  * **数据路径**：将所有 `utils/map/` 路径，修改为从 `core/data/` 读取。
-* [ ] **创建 Handler**：
-  * **目标**：在 `handlers/` 目录下新建 `character.py`。
-  * **逻辑**：
-    1.  注册 `on_command("角色面板")`。
-    2.  从 `services.user_service` 获取用户绑定的 `uid` 和 `cookie`。
-    3.  调用 `services.character_service` 获取处理好的角色数据。
-    4.  调用 `core.drawing.character_card.draw_char_card()` 传入数据，获得图片。
-    5.  回复图片。
+[✅] 迁移数据处理逻辑 (更新 services/game_service.py 以集成 ranking_api)
 
----
+[✅] 迁移绘图逻辑 (创建 core/drawing/ranking_card.py 并重构)
 
-### 🏆 阶段 3：核心功能迁移 (2) - 排行榜
+[✅] 创建 Handler (创建 handlers/ranking.py)
 
-验证 `ranking_api` 和相关的绘图逻辑。
+🧩 阶段 4：模块化迁移其他功能 (🏃‍♂️ 进行中...)
+[🏃‍♂️] 迁移角色列表 (wutheringwaves_charlist)
 
-* [ ] **迁移绘图逻辑**：
-  * **来源**：`WutheringWavesUID2/wutheringwaves_rank/darw_rank_card.py` 和 `draw_total_rank_card.py`。
-  * **目标**：`nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/drawing/ranking_card.py`。
-* [ ] **重构绘图逻辑**：
-  * **Imports**：修正 `imagetool` 的 import。
-  * **资源路径**：修正 `texture2d` 的路径。
-* [ ] **创建 Handler**：
-  * **目标**：在 `handlers/` 目录下新建 `ranking.py`。
-  * **逻辑**：
-    1.  注册 `on_command("角色排行")` 和 `on_command("总分排行")`。
-    2.  调用 `services.game_service` 中（我上次回复帮你加上的）`get_character_rank` 或 `get_total_rank` 方法获取数据。
-    3.  调用 `core.drawing.ranking_card.draw_...()` 绘图。
-    4.  回复图片。
+[✅] 1. 迁移数据处理逻辑 (我上一条回复中，已更新 services/character_service.py，添加了 get_character_list_data 方法)
 
----
+[✅] 2. 迁移绘图逻辑 
 
-### 🧩 阶段 4：模块化迁移其他功能
+[✅]3. 创建 Handler
 
-现在你已经有了清晰的模式（`Handler` -> `Service` -> `Drawing`)，可以逐个迁移其他功能。
+[✅] 迁移体力查询 (wutheringwaves_stamina)(← 我们现在在这里 📍)
 
-* [ ] **迁移体力查询 (`wutheringwaves_stamina`)**
-* [ ] **迁移角色列表 (`wutheringwaves_charlist`)**
-* [ ] **迁移声骸列表 (`wutheringwaves_echo`)**
-* [ ] **迁移探索度 (`wutheringwaves_explore`)**
-* [ ] **迁移深渊 (`wutheringwaves_abyss`)**
-* [ ] **迁移抽卡记录 (`wutheringwaves_gachalog`)**
-  * *注意：这个功能可能需要扩展你的 `models.py` 来存储抽卡数据。*
-* [ ] **迁移数据统计 (`wutheringwaves_query`)** (持有率、出场率)
-* [ ] **迁移 Wiki (`wutheringwaves_wiki`)**
-* [ ] **迁移日历/材料 (`wutheringwaves_calendar`, `wutheringwaves_develop`)**
+[✅] 迁移声骸列表 (wutheringwaves_echo)
 
----
+[✅]迁移探索度 (wutheringwaves_explore)
 
-### ⚙️ 阶段 5：完善与收尾
+[ ] 迁移深渊 (wutheringwaves_abyss)
 
-* [ ] **数据库模型 (`models.py`)**：
-  * **来源**：`WutheringWavesUID1/utils/database/models.py`
-  * **目标**：`nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/models.py`
-  * **适配**：你已经有了 `User` 和 `UserBind`。你需要将原项目中你需要的模型（如 `WavesGacha`）合并到你的 `models.py` 中，并确保它们使用你的 SQLAlchemy `db` 实例。
-* [ ] **帮助菜单 (`wutheringwaves_help`)**：
-  * 迁移 `get_help.py` 和 `help.json`，在 `handlers/help.py` 中注册 `on_command("鸣潮帮助")`。
-  * `help.json` 需要根据你迁移后的命令进行更新。
-* [ ] **配置 (`wutheringwaves_config`)**：
-  * 将原项目的配置项迁移到你的 `config.py` 中。
-  * 原项目的 *动态修改配置* 功能，可以迁移到 `handlers/config.py` 中，使用 NoneBot2 的 `get_driver().config` 来动态修改。
-* [ ] **登录逻辑**：
-  * 你已经有了 `handlers/login.py` 和 `web_routes.py`。
-  * 你需要将 `WutheringWavesUID1/wutheringwaves_login/login.py` 中的 *获取验证码*、*执行登录* 的核心 API 调用逻辑，整合到你的 `handlers/login.py` 和 `services/user_service.py` 中。你的 Web 登录流程是现代化的，但它最终还是需要调用 `waves_api.login()`。
+[ ] 迁移抽卡记录 (wutheringwaves_gachalog)
 
-这个清单非常庞大，我建议你从 **阶段 0** 和 **阶段 1** 开始，先把地基打好。
+[ ] 迁移数据统计 (wutheringwaves_query) (持有率、出场率)
 
-需要我帮你把 **阶段 1** 的核心工具（如 `imagetool`）迁移并适配成 `core/utils/drawing.py` 吗？
+[ ] 迁移 Wiki (wutheringwaves_wiki)
+
+[ ] 迁移日历/材料 (wutheringwaves_calendar, wutheringwaves_develop)
+
+⚙️ 阶段 5：完善与收尾 (⏳ 未开始)
+[ ] 数据库模型 (models.py)
+
+[ ] 帮助菜单 (wutheringwaves_help)
+
+[ ] 配置 (wutheringwaves_config)
+
+[ ] 登录逻辑 (功能增强)

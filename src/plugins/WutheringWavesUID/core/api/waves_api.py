@@ -1,3 +1,5 @@
+# nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/api/waves_api.py
+
 import json
 from typing import Dict, Any
 from .client import api_client
@@ -82,7 +84,7 @@ class WavesAPI:
             )
 
     async def get_stats(self, cookie: str, uid: str) -> APIResponse:
-        """获取统计数据"""
+        """获取统计数据 (包含体力)"""
         url = f"{self.base_url}game/stats"
         headers = {"Cookie": cookie}
         params = {"uid": uid}
@@ -100,5 +102,27 @@ class WavesAPI:
                 success=False,
                 msg=result.get("message", "获取失败")
             )
+
+    # --- 新增方法 ---
+    async def get_explore_info(self, cookie: str, uid: str) -> APIResponse:
+        """获取探索度信息"""
+        url = f"{self.base_url}explore/info"
+        headers = {"Cookie": cookie}
+        params = {"uid": uid}
+
+        result = await api_client.request("GET", url, headers=headers, params=params)
+
+        if result.get("retcode") == 0:
+            return APIResponse(
+                success=True,
+                data=result.get("data", {}),
+                msg="获取成功"
+            )
+        else:
+            return APIResponse(
+                success=False,
+                msg=result.get("message", "获取失败")
+            )
+    # --- 新增方法结束 ---
 
 waves_api = WavesAPI()
