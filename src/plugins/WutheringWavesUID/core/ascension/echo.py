@@ -1,33 +1,37 @@
+# nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/ascension/echo.py
+import json
+from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Union
+from typing import List
 
-from msgspec import json as msgjson
+from .constant import ECHO_MAX_LEVEL
+from .model import AscensionEcho, EchoAscensionData
+from .template import AscensionTemplate
 
-from gsuid_core.logger import logger
-
-from .model import EchoModel
-
-MAP_PATH = Path(__file__).parent.parent / "map/detail_json/echo"
-echo_id_data = {}
+# 适配修改：从 from utils.map.detail_json...
+JSON_PATH = Path(__file__).parent.parent / "data" / "detail_json" / "echo"
 
 
-def read_echo_json_files(directory):
-    files = directory.rglob("*.json")
-
-    for file in files:
-        try:
-            with open(file, "r", encoding="utf-8") as f:
-                data = msgjson.decode(f.read())
-                file_name = file.name.split(".")[0]
-                echo_id_data[file_name] = data
-        except Exception as e:
-            logger.exception(f"read_echo_json_files load fail decoding {file}", e)
+@lru_cache
+def _get_echo_ascension_data(rarity: str) -> EchoAscensionData:
+    with open(JSON_PATH / f"{rarity}.json", "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
-read_echo_json_files(MAP_PATH)
+class EchoAscension(AscensionTemplate[AscensionEcho]):
+    def __init__(self, rarity: str) -> None:
+        data = _get_echo_ascension_data(rarity)
+        super().__init__(data["ascensions"], data["levels"])
+        self.rarity = rarity
 
+    def get_cost(self, level: int) -> int:
+        return self.data[level - 1]["cost"]
 
-def get_echo_model(echo_id: Union[int, str]) -> Optional[EchoModel]:
-    if str(echo_id) not in echo_id_data:
-        return None
-    return EchoModel(**echo_id_data[str(echo_id)])
+    def get_total_cost(self, level: int) -> int:
+        cost = 0
+        for i in range(level):
+            cost += self.get_cost(i + 1)
+        return cost
+
+    def get_val_by_level(self, level: int) -> List[float]:
+        return self.levels[0][level - 1]

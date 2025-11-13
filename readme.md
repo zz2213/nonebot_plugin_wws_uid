@@ -262,19 +262,19 @@ user = await user_service.get_user(user_id, bot_id)
 
 现在，迁移所有绘图、计算和数据管理的基础工具。
 
-* [ ] **迁移绘图工具**： 
+* [ ] **迁移绘图工具**： (✅)
   * **来源**：`WutheringWavesUID1/utils/imagetool.py` 和 `WutheringWavesUID1/utils/image.py`。
   * **目标**：将它们的代码合并/移动到 `nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/utils/drawing.py` (建议新建一个 `drawing.py`)。
   * **适配**：你需要修改这个文件，使其能正确加载 `assets/fonts/` 里的字体。
-* [ ] **迁移字体工具**：
+* [ ] **迁移字体工具**：(✅)
   * **来源**：`WutheringWavesUID1/utils/fonts/waves_fonts.py`
   * **目标**：`nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/utils/fonts.py` (建议新建)
   * **适配**：修改文件内的路径，使其指向 `assets/fonts/`。
-* [ ] **迁移伤害计算**：
+* [ ] **迁移伤害计算**：(✅)
   * **来源**：`WutheringWavesUID1/utils/damage/`
   * **目标**：`nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/damage/` (建议新建)
   * **适配**：这个模块比较独立，但你需要修改它的`import`语句，使其能正确读取 `core/data/` 目录下的数据。
-* [ ] **迁移别名服务**：
+* [ ] **迁移别名服务**：(✅)
   * **来源**：`WutheringWavesUID1/wutheringwaves_alias/char_alias_ops.py`
   * **目标**：在 `services/` 下新建 `alias_service.py`，将功能迁移过去。
   * **适配**：修改代码，使其读取 `core/data/alias/` 下的 JSON 文件。
