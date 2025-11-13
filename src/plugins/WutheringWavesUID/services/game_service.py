@@ -59,7 +59,6 @@ class GameService:
       return result.data
     return {}
 
-  # --- 新增方法 (来自 waves_api) ---
   async def get_explore_info(self, cookie: str, uid: str) -> Dict[str, Any]:
     """获取探索度信息 (来自游戏API)"""
     cache_key = f"explore_info_{uid}"
@@ -69,6 +68,43 @@ class GameService:
       return json.loads(cached)
 
     result = await waves_api.get_explore_info(cookie, uid)
+    if result.success:
+      await set_cache(cache_key, json.dumps(result.data), 1800)  # 缓存30分钟
+      return result.data
+    return {}
+
+  # --- 新增深渊相关方法 (来自 waves_api) ---
+  async def get_tower_info(self, cookie: str, uid: str) -> Dict[str, Any]:
+    """获取深境之塔信息 (来自游戏API)"""
+    cache_key = f"tower_info_{uid}"
+    cached = await get_cache(cache_key)
+    if cached:
+      return json.loads(cached)
+    result = await waves_api.get_tower_info(cookie, uid)
+    if result.success:
+      await set_cache(cache_key, json.dumps(result.data), 1800)  # 缓存30分钟
+      return result.data
+    return {}
+
+  async def get_challenge_info(self, cookie: str, uid: str) -> Dict[str, Any]:
+    """获取全息战略信息 (来自游戏API)"""
+    cache_key = f"challenge_info_{uid}"
+    cached = await get_cache(cache_key)
+    if cached:
+      return json.loads(cached)
+    result = await waves_api.get_challenge_info(cookie, uid)
+    if result.success:
+      await set_cache(cache_key, json.dumps(result.data), 1800)  # 缓存30分钟
+      return result.data
+    return {}
+
+  async def get_slash_info(self, cookie: str, uid: str) -> Dict[str, Any]:
+    """获取冥歌海墟信息 (来自游戏API)"""
+    cache_key = f"slash_info_{uid}"
+    cached = await get_cache(cache_key)
+    if cached:
+      return json.loads(cached)
+    result = await waves_api.get_slash_info(cookie, uid)
     if result.success:
       await set_cache(cache_key, json.dumps(result.data), 1800)  # 缓存30分钟
       return result.data
