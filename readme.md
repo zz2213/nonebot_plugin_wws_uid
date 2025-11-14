@@ -267,8 +267,8 @@ user = await user_service.get_user(user_id, bot_id)
 
 [✅] 创建 Handler (创建 handlers/ranking.py)
 
-🧩 阶段 4：模块化迁移其他功能 (🏃‍♂️ 进行中...)
-[🏃‍♂️] 迁移角色列表 (wutheringwaves_charlist)
+🧩 阶段 4：模块化迁移其他功能 (✅)
+[✅️] 迁移角色列表 (wutheringwaves_charlist)
 
 [✅] 1. 迁移数据处理逻辑 (我上一条回复中，已更新 services/character_service.py，添加了 get_character_list_data 方法)
 
@@ -292,10 +292,10 @@ user = await user_service.get_user(user_id, bot_id)
 
 [✅] 迁移日历/材料 (wutheringwaves_calendar, wutheringwaves_develop)
 
-⚙️ 阶段 5：完善与收尾 (⏳ 未开始)
-[ ] 数据库模型 (models.py)
+⚙️ 阶段 5：完善与收尾 (🏃‍♂️ 进行中...)
+[✅] 数据库模型 (models.py)
 
-[ ] 帮助菜单 (wutheringwaves_help)
+[✅] 帮助菜单 (wutheringwaves_help)
 
 [ ] 配置 (wutheringwaves_config)
 

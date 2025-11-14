@@ -26,9 +26,8 @@ class UserBind(Base):
   )
 
 
-# --- 新增模型 ---
 class WavesGacha(Base):
-  """抽卡记录"""
+  """抽卡记录 (迁移自 wutheringwaves_gachalog)"""
   __tablename__ = "waves_gacha"
   id = Column(Integer, primary_key=True, index=True, autoincrement=True)
   user_id = Column(String(255), index=True)
@@ -41,4 +40,3 @@ class WavesGacha(Base):
   rarity = Column(Integer)
   time = Column(String(32))
   message_id = Column(String(255), unique=True, index=True)  # 使用 messageId 作为唯一键
-# --- 新增模型结束 ---
