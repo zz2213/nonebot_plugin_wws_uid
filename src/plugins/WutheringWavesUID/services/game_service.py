@@ -7,7 +7,8 @@ from ..core.api.waves_api import waves_api
 from ..core.api.ranking_api import (
   ranking_api, RankItem, RankInfoResponse, TotalRankRequest,
   TotalRankResponse, AbyssRecordRequest, AbyssRecordResponse,
-  RoleHoldRateRequest, RoleHoldRateResponse, SlashRankItem, SlashRankRes
+  RoleHoldRateRequest, RoleHoldRateResponse, SlashRankItem, SlashRankRes,
+  SlashAppearRateRequest, SlashAppearRateResponse  # 新增导入
 )
 from ..database import get_cache, set_cache
 
@@ -21,13 +22,11 @@ class GameService:
     """获取用户信息 (来自游戏API)"""
     cache_key = f"user_info_{uid}"
     cached = await get_cache(cache_key)
-
     if cached:
       return json.loads(cached)
-
     result = await waves_api.get_user_info(cookie, uid)
     if result.success:
-      await set_cache(cache_key, json.dumps(result.data), 300)  # 5分钟缓存
+      await set_cache(cache_key, json.dumps(result.data), 300)
       return result.data
     return {}
 
@@ -35,10 +34,8 @@ class GameService:
     """获取角色信息 (来自游戏API)"""
     cache_key = f"role_info_{uid}"
     cached = await get_cache(cache_key)
-
     if cached:
       return json.loads(cached)
-
     result = await waves_api.get_role_info(cookie, uid)
     if result.success:
       await set_cache(cache_key, json.dumps(result.data), 300)
@@ -49,13 +46,11 @@ class GameService:
     """获取游戏统计 (来自游戏API)"""
     cache_key = f"game_stats_{uid}"
     cached = await get_cache(cache_key)
-
     if cached:
       return json.loads(cached)
-
     result = await waves_api.get_stats(cookie, uid)
     if result.success:
-      await set_cache(cache_key, json.dumps(result.data), 600)  # 10分钟缓存
+      await set_cache(cache_key, json.dumps(result.data), 600)
       return result.data
     return {}
 
@@ -63,17 +58,14 @@ class GameService:
     """获取探索度信息 (来自游戏API)"""
     cache_key = f"explore_info_{uid}"
     cached = await get_cache(cache_key)
-
     if cached:
       return json.loads(cached)
-
     result = await waves_api.get_explore_info(cookie, uid)
     if result.success:
-      await set_cache(cache_key, json.dumps(result.data), 1800)  # 缓存30分钟
+      await set_cache(cache_key, json.dumps(result.data), 1800)
       return result.data
     return {}
 
-  # --- 新增深渊相关方法 (来自 waves_api) ---
   async def get_tower_info(self, cookie: str, uid: str) -> Dict[str, Any]:
     """获取深境之塔信息 (来自游戏API)"""
     cache_key = f"tower_info_{uid}"
@@ -82,7 +74,7 @@ class GameService:
       return json.loads(cached)
     result = await waves_api.get_tower_info(cookie, uid)
     if result.success:
-      await set_cache(cache_key, json.dumps(result.data), 1800)  # 缓存30分钟
+      await set_cache(cache_key, json.dumps(result.data), 1800)
       return result.data
     return {}
 
@@ -94,7 +86,7 @@ class GameService:
       return json.loads(cached)
     result = await waves_api.get_challenge_info(cookie, uid)
     if result.success:
-      await set_cache(cache_key, json.dumps(result.data), 1800)  # 缓存30分钟
+      await set_cache(cache_key, json.dumps(result.data), 1800)
       return result.data
     return {}
 
@@ -106,11 +98,9 @@ class GameService:
       return json.loads(cached)
     result = await waves_api.get_slash_info(cookie, uid)
     if result.success:
-      await set_cache(cache_key, json.dumps(result.data), 1800)  # 缓存30分钟
+      await set_cache(cache_key, json.dumps(result.data), 1800)
       return result.data
     return {}
-
-  # --- 新增方法结束 ---
 
   # --- 现有的方法 (来自 ranking_api) ---
 
@@ -120,7 +110,6 @@ class GameService:
     cached = await get_cache(cache_key)
     if cached:
       return RankInfoResponse(**json.loads(cached))
-
     result = await ranking_api.get_rank(rank_item)
     if result.code == 200 and result.data:
       await set_cache(cache_key, result.json(), 1800)
@@ -133,7 +122,6 @@ class GameService:
     cached = await get_cache(cache_key)
     if cached:
       return TotalRankResponse(**json.loads(cached))
-
     result = await ranking_api.get_total_rank(total_rank_request)
     if result.code == 200 and result.data:
       await set_cache(cache_key, result.json(), 1800)
@@ -146,7 +134,6 @@ class GameService:
     cached = await get_cache(cache_key)
     if cached:
       return AbyssRecordResponse(**json.loads(cached))
-
     result = await ranking_api.get_abyss_record(abyss_request)
     if result.code == 200 and result.data:
       await set_cache(cache_key, result.json(), 3600 * 6)
@@ -160,7 +147,6 @@ class GameService:
     cached = await get_cache(cache_key)
     if cached:
       return RoleHoldRateResponse(**json.loads(cached))
-
     result = await ranking_api.get_hold_rate(hold_rate_request)
     if result.code == 200 and result.data:
       await set_cache(cache_key, result.json(), 3600 * 6)
@@ -173,26 +159,36 @@ class GameService:
     cached = await get_cache(cache_key)
     if cached:
       return SlashRankRes(**json.loads(cached))
-
     result = await ranking_api.get_slash_rank(slash_rank_item)
     if result.code == 200 and result.data:
       await set_cache(cache_key, result.json(), 1800)
       return result
     return None
 
+  # --- 新增 冥海出场率 方法 ---
+  async def get_slash_appear_rate(self, request_data: SlashAppearRateRequest) -> Optional[SlashAppearRateResponse]:
+    """获取冥海出场率 (来自排行API)"""
+    cache_key = f"slash_appear_rate_{request_data.version or 'latest'}"
+    cached = await get_cache(cache_key)
+    if cached:
+      return SlashAppearRateResponse(**json.loads(cached))
+
+    result = await ranking_api.get_slash_appear_rate(request_data)
+    if result.code == 200 and result.data:
+      await set_cache(cache_key, result.json(), 3600 * 6)  # 缓存6小时
+      return result
+    return None
+
+  # --- 新增方法结束 ---
+
   async def upload_panel_data(self, cookie: str, uid: str) -> str:
-    """
-    上传面板数据
-    这是一个示例流程：先获取角色信息，然后上传
-    """
+    """上传面板数据"""
     role_data = await self.get_role_info(cookie, uid)
     if not role_data:
       return "获取角色信息失败，无法上传"
-
     upload_data = {
       "uid": uid,
       "role_list": role_data.get("roleList", [])
     }
-
     result = await ranking_api.upload_data(upload_data)
     return result.msg

@@ -238,7 +238,24 @@ class SlashRankRes(BaseModel):
   data: Optional[SlashRankData] = None
 
 
-# --- 新增的 RankingAPI 类 ---
+# --- 新增 冥海出场率 模型 ---
+class SlashAppearRateRequest(BaseModel):
+  version: Optional[str] = None  # 似乎不需要参数，但保留
+
+
+class SlashAppearRate(BaseModel):
+  char_id: int
+  rate: float
+
+
+class SlashAppearRateResponse(BaseModel):
+  code: int
+  message: str
+  data: List[SlashAppearRate]
+
+
+# --- 新增模型结束 ---
+
 
 class RankingAPI:
   """鸣潮排行榜API封装"""
@@ -263,6 +280,14 @@ class RankingAPI:
     result = await api_client.request("POST", GET_ABYSS_RECORD_URL, json=abyss_request.dict())
     return AbyssRecordResponse(**result)
 
+  # --- 新增 冥海出场率 API ---
+  async def get_slash_appear_rate(self, request_data: SlashAppearRateRequest) -> SlashAppearRateResponse:
+    """获取冥海出场率"""
+    result = await api_client.request("POST", GET_SLASH_APPEAR_RATE, json=request_data.dict())
+    return SlashAppearRateResponse(**result)
+
+  # --- 新增 API 结束 ---
+
   async def get_hold_rate(self, hold_rate_request: RoleHoldRateRequest) -> RoleHoldRateResponse:
     """获取角色持有率"""
     result = await api_client.request("POST", GET_HOLD_RATE_URL, json=hold_rate_request.dict())
@@ -281,8 +306,6 @@ class RankingAPI:
         msg=result.get("message", "上传失败"),
         data=result.get("data", {})
     )
-
-  # ... 你可以根据需要继续添加其他 API (如 UPLOAD_ABYSS_RECORD_URL 等) 的封装 ...
 
 
 ranking_api = RankingAPI()
