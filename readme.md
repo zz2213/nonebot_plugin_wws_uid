@@ -301,62 +301,101 @@ user = await user_service.get_user(user_id, bot_id)
 
 [✅] 登录逻辑 (功能增强)
 
-1. 待办 (TODO)：核心逻辑集成
-这些是你在代码里看到的 TODO，它们是让现有功能变得完善所必需的：
+🌟 最终迁移计划清单 🌟
+🧩 阶段 4：模块化迁移其他功能 (扫尾)
+这些是原项目中功能独立、我们尚未开始迁移的模块。
 
-[ ] 别名服务集成：
+[✅ ] 1. 迁移资源统计 (wutheringwaves_period)
 
-问题：在 handlers/character.py, handlers/ranking.py, handlers/echo_list.py, handlers/wiki.py 中，我为了方便，硬编码了一个 role_id_map = {"忌炎": 1404, ...}。
+任务:
 
-待办：我们必须替换掉这个 map，改成实际调用我们已经迁移好的 alias_service.find_char_alias() 来查找 ID。
+更新 core/api/waves_api.py 添加 get_period_info API。
 
-[ ] 伤害计算框架集成：
+更新 services/game_service.py 添加 get_period_info 缓存。
 
-问题：在 services/character_service.py 中，我注释掉了 _refresh_char_detail 函数的调用。
+创建 core/drawing/period_card.py (迁移绘图逻辑)。
 
-待办：我们需要重构这个函数，使其能正确使用我们迁移的 core/damage 框架，并加载 core/data/damage/ 目录下的角色脚本来计算详细属性。这是目前最复杂的遗留任务。
+创建 handlers/period.py (注册 资源 命令)。
 
-[ ] 面板上传逻辑：
+[ ✅] 2. 迁移游戏公告 (wutheringwaves_ann)
 
-问题：services/game_service.py 中的 upload_panel_data 方法目前只是一个存根 (stub)。
+任务:
 
-待办：我们需要将 WutheringWavesUID1/wutheringwaves_master/__init__.py 中的 upload_waves_info 完整逻辑迁移过来。
+创建 services/announcement_service.py (封装公告 API)。
 
-[ ] 动态配置系统：
+创建 core/drawing/ann_card.py (迁移绘图逻辑)。
 
-问题：我们只迁移了静态的 .env 配置。
+创建 handlers/announcement.py (注册 公告 命令)。
 
-待办：原项目的 wutheringwaves_config 允许管理员通过指令（如 设置 体力推送 开启）动态修改设置。这需要一个全新的 Service 来管理一个 JSON 配置文件，我们尚未迁移。
+[ ✅] 3. 迁移兑换码 (wutheringwaves_code)
 
-2. 缺失的模块
-这些是原项目中存在，但我们尚未开始迁移的独立功能：
+任务:
 
-[ ] 资源统计 (wutheringwaves_period)：
+创建 services/code_service.py (封装兑换码源)。
 
-功能：绘制玩家的每日/每周活跃度、月卡、星声等资源的统计图。
+创建 handlers/code.py (注册 兑换码 命令)。
 
-依赖：需要 waves_api 添加新端点（game/period）并绘图。
+[ ✅] 4. 迁移卡池统计 (wutheringwaves_up)
 
-[ ] 游戏公告 (wutheringwaves_ann)：
+任务:
 
-功能：获取并展示当前的B服/官服游戏公告。
+创建 core/drawing/pool_card.py (迁移绘图逻辑)。
 
-依赖：需要新的 API 封装和绘图逻辑。
+创建 handlers/pool.py (注册 卡池统计 命令，调用 game_service.get_pool_list)。
 
-[ ] 兑换码 (wutheringwaves_code)：
+[✅] 5. 迁移基础信息 (wutheringwaves_roleinfo)
 
-功能：自动从外部源获取最新的游戏兑换码。
+任务:
 
-依赖：需要一个新的 Service 来爬取兑换码。
+创建 core/drawing/role_info_card.py (迁移绘图逻辑)。
 
-[ ] 卡池统计 (wutheringwaves_up)：
+创建 handlers/role_info.py (注册 基础信息 命令，调用 game_service.get_user_info)。
 
-功能：统计当前 UP 卡池的抽取情况。
+[✅] 6. 迁移趣味功能
 
-依赖：ranking_api 的 get_pool_list（已存在）和新的绘图逻辑。
+任务: 迁移 wutheringwaves_more (扑克牌) 和 wutheringwaves_update (更新日志)。
 
-[ ] 完整日历 (wutheringwaves_calendar)：
+⚙️ 阶段 5：完善与收尾 (核心 TODO 修复)
+这是我们之前跳过的、用于完善插件的“技术债”。
 
-问题：我们只迁移了“每日材料” 部分。
+[✅] 7. 迁移面板上传逻辑 (框架 B 集成)
 
-待办：完整的 draw_calendar_card.py 还需要（尚未迁移的）卡池信息和活动信息。
+背景: 这是你指出的最关键的 TODO。角色排行 依赖于一个“期望伤害”值，这个值是由一个独立的“团队 Buff 框架”（即 utils/map/damage/damage_XXXX.py）计算出来的。
+
+任务:
+
+迁移依赖: 迁移 wutheringwaves_master 中的 DamageAttribute 等核心类。
+
+重构脚本: 重构 core/data/damage/ 目录下的所有 damage_XXXX.py 脚本，使它们能被新框架调用。
+
+重构服务: 重写 services/game_service.py 中的 upload_panel_data 方法，让它：
+
+调用 character_service 获取面板属性 (框架 A)。
+
+调用团队 Buff 框架 (框架 B) 计算“期望伤害”。
+
+将两者合并后上传。
+
+创建 Handler: 创建 handlers/upload.py (注册 上传面板 命令)。
+
+[✅did] 8. 迁移动态配置系统 (wutheringwaves_config)
+
+任务:
+
+创建 services/config_service.py (用于异步读写 config.json)。
+
+创建 handlers/config.py (注册 设置配置 和 查看配置 命令)。
+
+更新所有已迁移的模块（如 stamina.py），让它们优先读取 config_service 中的动态设置。
+
+[ ] 9. 迁移完整日历 (wutheringwaves_calendar)
+
+背景: 我们目前只迁移了 每日材料。
+
+任务:
+
+(此项必须在 2, 4 之后) 创建 core/drawing/calendar_card.py (迁移 draw_calendar_card.py)。
+
+创建 handlers/calendar.py (注册 日历 命令)。
+
+handlers/calendar.py 将调用 calendar_service、announcement_service 和 game_service (for pools) 来获取全部数据。
