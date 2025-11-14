@@ -290,7 +290,7 @@ user = await user_service.get_user(user_id, bot_id)
 
 [✅] 迁移 Wiki (wutheringwaves_wiki)
 
-[ ] 迁移日历/材料 (wutheringwaves_calendar, wutheringwaves_develop)
+[✅] 迁移日历/材料 (wutheringwaves_calendar, wutheringwaves_develop)
 
 ⚙️ 阶段 5：完善与收尾 (⏳ 未开始)
 [ ] 数据库模型 (models.py)
