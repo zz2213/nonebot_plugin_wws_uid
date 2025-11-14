@@ -1,3 +1,5 @@
+# nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/__init__.py
+
 from nonebot.plugin import PluginMetadata
 from nonebot import get_driver
 
@@ -17,7 +19,8 @@ __plugin_meta__ = PluginMetadata(
 )
 
 global_config = get_driver().config
-plugin_config = Config(**global_config.dict())
+# 适配修改：使用 parse_obj 来正确加载 Pydantic 的 env_prefix 配置
+plugin_config = Config.parse_obj(global_config)
 
 # 导入处理器
 from . import handlers

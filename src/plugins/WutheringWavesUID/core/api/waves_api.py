@@ -13,6 +13,29 @@ class WavesAPI:
   def __init__(self):
     self.base_url = plugin_config.WAVES_API_URL
 
+  # --- 新增方法 (来自 wutheringwaves_login/login.py) ---
+  async def get_captcha_code(self, phone: str) -> APIResponse:
+    """获取手机验证码"""
+    url = f"{self.base_url}get_captcha"
+    data = {"phone": phone, "source": 2}
+
+    result = await api_client.request("POST", url, json=data)
+
+    # 验证码 API 的 retcode 是 1
+    if result.get("retcode") == 1:
+      return APIResponse(
+          success=True,
+          data=result.get("data", {}),
+          msg=result.get("message", "验证码发送成功")
+      )
+    else:
+      return APIResponse(
+          success=False,
+          msg=result.get("message", "验证码发送失败")
+      )
+
+  # --- 新增方法结束 ---
+
   async def login(self, phone: str, code: str, did: str) -> LoginResponse:
     """手机号登录"""
     url = f"{self.base_url}login"
@@ -160,7 +183,6 @@ class WavesAPI:
         msg=result.get("message", "获取失败")
     )
 
-  # --- 新增抽卡相关方法 ---
   async def get_gacha_logs(
       self, base_url: str, params: Dict[str, Any]
   ) -> APIResponse:
@@ -170,14 +192,12 @@ class WavesAPI:
     :param params: 抽卡 API 所需的参数
     """
     url = f"{base_url}/api/gachaInfo/list"
-    # 注意：抽卡 API 不需要 Cookie
     result = await api_client.request("GET", url, params=params)
 
-    # 抽卡 API 的返回结构不同
     if result.get("code") == 0 or result.get("code") == "0":
       return APIResponse(
           success=True,
-          data=result.get("data", []),  # 数据在 data 字段
+          data=result.get("data", []),
           msg=result.get("message", "获取成功")
       )
     else:
@@ -185,7 +205,6 @@ class WavesAPI:
           success=False,
           msg=result.get("message", "获取失败")
       )
-  # --- 新增方法结束 ---
 
 
 waves_api = WavesAPI()
