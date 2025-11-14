@@ -1,68 +1,118 @@
 # nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/core/damage_buff/load_scripts.py
+# (原名 register.py, 迁移自 WutheringWavesUID1/utils/map/damage/register.py)
 
 import importlib
-import pkgutil
+import importlib.util
 from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Type
+
+# 适配修改：
+from .models import CharAbstract, WeaponAbstract, DamageAttribute
 from nonebot.log import logger
 
-# 导入 Framework B 的核心类
-from .buff_engine import CharAbstract, DamageAttribute, WavesWeaponRegister
+# --- 适配结束 ---
 
-# 导入 Framework B 的注册器
-from ..data.damage.register import WavesCharRegister
-
-# 导入 Framework A 的相关工具 (旧脚本会 import)
-from ..core.damage.abstract import DamageAbstract
-from ..core.damage.damage import Damage
-from ..core.damage.utils import get_damage_data
-from ..core.utils.util import sync_dict
+# 适配修改：路径指向 core/data/damage/ (存放 damage_XXXX.py 脚本)
+SCRIPT_PATH = Path(__file__).parent.parent / "data" / "damage"
 
 
-def load_all_damage_scripts():
-    """
-    动态加载 core/data/damage/ 目录下的所有 damage_*.py 脚本
-    """
+class WavesRegister:
+    def __init__(self) -> None:
+        self.classes: Dict[
+            int, Type[Union[CharAbstract, WeaponAbstract]]
+        ] = {}
+        self.script_loaded = False
 
-    # 路径指向 .../core/data/damage
-    scripts_path = Path(__file__).parent.parent / "data" / "damage"
-    # 转换为 Python 模块路径
-    module_prefix = "nonebot_plugin_wws_uid.src.plugins.WutheringWavesUID.core.data.damage"
+    def register_class(
+            self,
+            class_id: int,
+            clz: Type[Union[CharAbstract, WeaponAbstract]],
+    ):
+        if class_id in self.classes:
+            logger.warning(
+                f"[Framework B] Duplicate class id: {class_id} "
+                f"old: {self.classes[class_id].__name__} "
+                f"new: {clz.__name__}"
+            )
+        self.classes[class_id] = clz
 
-    logger.info("Start loading damage buff scripts (Framework B)...")
+    def find_class(
+            self, class_id: int
+    ) -> Optional[Type[Union[CharAbstract, WeaponAbstract]]]:
+        self.load_all_script()
+        return self.classes.get(class_id, None)
 
-    loaded_count = 0
-    for finder, name, ispkg in pkgutil.iter_modules([str(scripts_path)]):
-        if name.startswith("damage_"):
+    def load_all_script(self):
+        if self.script_loaded:
+            return
+        self.script_loaded = True
+
+        logger.info(f"[Framework B] Loading damage scripts from: {SCRIPT_PATH}")
+
+        for file in SCRIPT_PATH.glob("damage_*.py"):
             try:
-                module_name = f"{module_prefix}.{name}"
+                # 适配修改：使用 importlib 动态加载 .py 文件
+                module_name = file.stem
+                # 必须给一个唯一的 module name
+                module_qualname = f"nonebot_plugin_wws_uid.dynamic_damage_scripts.{module_name}"
 
-                # --- 关键的猴子补丁 ---
-                # 旧脚本 (damage_1102.py) 错误地导入了:
-                # from ...utils.damage.abstract import CharAbstract
-                #
-                # 我们必须在它导入之前，
-                # 手动将我们正确的 CharAbstract (Framework B)
-                # 注入到它试图导入的模块 (Framework A) 中。
+                spec = importlib.util.spec_from_file_location(
+                    module_qualname,
+                    file
+                )
+                if spec and spec.loader:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    if hasattr(module, "register_char"):
+                        module.register_char()
+                    if hasattr(module, "register_weapon"):
+                        module.register_weapon()
+                    # logger.debug(f"[Framework B] Loaded damage script: {file.name}")
 
-                from ...core.damage import abstract as framework_a_abstract
-
-                # 将 Framework B 的类，注入到 Framework A 的模块中
-                setattr(framework_a_abstract, "CharAbstract", CharAbstract)
-                setattr(framework_a_abstract, "WavesCharRegister", WavesCharRegister)
-                setattr(framework_a_abstract, "WavesWeaponRegister", WavesWeaponRegister)
-                setattr(framework_a_abstract, "DamageAttribute", DamageAttribute)
-
-                # --- 补丁结束 ---
-
-                importlib.import_module(module_name)
-                loaded_count += 1
-            except ImportError as e:
-                logger.error(f"Failed to import damage script {name}: {e}")
             except Exception as e:
-                logger.error(f"Error loading damage script {name}: {e}")
+                logger.error(f"[Framework B] Failed to load script {file.name}: {e}")
+                logger.exception(e)
 
-    logger.info(f"Loaded {loaded_count} damage buff scripts.")
+        logger.info(f"[Framework B] Loaded {len(self.classes)} damage scripts.")
 
 
-# 在插件加载时执行一次
-load_all_damage_scripts()
+WavesCharRegister = WavesRegister()
+WavesWeaponRegister = WavesRegister()
+WavesEchoRegister = WavesRegister()  # 暂不使用，但保留
+WavesSonataRegister = WavesRegister()  # 暂不使用，但保留
+
+
+def register_char(
+        char_id: int,
+) -> Callable[
+    [Type[CharAbstract]], Type[CharAbstract]
+]:
+    def decorator(
+            clz: Type[CharAbstract],
+    ) -> Type[CharAbstract]:
+        WavesCharRegister.register_class(char_id, clz)
+        return clz
+
+    return decorator
+
+
+def register_weapon(
+        weapon_id: int,
+) -> Callable[
+    [Type[WeaponAbstract]], Type[WeaponAbstract]
+]:
+    def decorator(
+            clz: Type[WeaponAbstract],
+    ) -> Type[WeaponAbstract]:
+        WavesWeaponRegister.register_class(weapon_id, clz)
+        return clz
+
+    return decorator
+
+
+def get_char(char_id: int) -> Optional[Type[CharAbstract]]:
+    return WavesCharRegister.find_class(char_id)
+
+
+def get_weapon(weapon_id: int) -> Optional[Type[WeaponAbstract]]:
+    return WavesWeaponRegister.find_class(weapon_id)

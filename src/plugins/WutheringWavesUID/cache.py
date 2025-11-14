@@ -1,8 +1,10 @@
+# nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/cache.py
+
 import time
 from typing import Any, Dict
 
 class TimedCache:
-    """内存缓存"""
+    """内存缓存 (仅用于 Web 登录)"""
 
     def __init__(self, timeout: int = 600, maxsize: int = 100):
         self.timeout = timeout
@@ -33,5 +35,5 @@ class TimedCache:
         if key in self._cache:
             del self._cache[key]
 
-# 全局缓存实例
+# 全局缓存实例 (用于 Web 登录)
 memory_cache = TimedCache()

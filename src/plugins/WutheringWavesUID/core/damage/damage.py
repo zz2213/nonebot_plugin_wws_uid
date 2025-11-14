@@ -4,23 +4,29 @@ from typing import Any, Dict
 # 适配修改：
 from ..utils.expression_evaluator import ExpressionCtx, ExpressionEvaluator
 from ..ascension.model import CharAscensionData, WeaponAscensionData
-from ...models import PlayerInfo
+# --- 修复：移除 PlayerInfo ---
+# from ...models import PlayerInfo # 错误：此模型已不存在
+# --- 修复结束 ---
 from ..utils.util import sync_dict
-# ---
+
 from .abstract import DamageAbstract
 from .constants import ECHO_MAIN_STAT
 
 
 class Damage(DamageAbstract):
     def __init__(
-        self,
-        data: Dict[str, Any],
-        char_data: CharAscensionData,
-        weapon_data: WeaponAscensionData,
-        player_info: PlayerInfo = None,
+            self,
+            data: Dict[str, Any],
+            char_data: CharAscensionData,
+            weapon_data: WeaponAscensionData,
+            # --- 修复：移除 PlayerInfo ---
+            player_info: Any = None,  # 原为 player_info: PlayerInfo = None
+            # --- 修复结束 ---
     ) -> None:
-        if player_info:
-            sync_dict(player_info.dict(), data)
+        # --- 修复：移除 PlayerInfo 逻辑 ---
+        # if player_info:
+        #     sync_dict(player_info.dict(), data)
+        # --- 修复结束 ---
         super().__init__(data)
         self.char_data = char_data
         self.weapon_data = weapon_data
@@ -62,10 +68,23 @@ class Damage(DamageAbstract):
         pass
 
     def apply_weapon_ascension(self):
+        # 修复：检查武器数据是否存在
+        if not self.weapon_data or not self.weapon_data.get("ascensions"):
+            self.ctx["武器基础攻击"] = 0
+            return  # 没有武器数据 (e.g., weapon_id="0")
+
         ascensions = self.weapon_data["ascensions"]
         levels = self.weapon_data["levels"]
         promote_level = self.weapon_promote_level
         level = self.weapon_level
+
+        # 修复：防止索引越界
+        if promote_level >= len(ascensions):
+            promote_level = len(ascensions) - 1
+        if level > ascensions[promote_level]["max_level"]:
+            level = ascensions[promote_level]["max_level"]
+        if level <= 0:
+            level = 1
 
         ascension = ascensions[promote_level]
         level_data = levels[promote_level][level - 1]
@@ -84,22 +103,22 @@ class Damage(DamageAbstract):
         for echo in self.echo_list:
             cost = echo["cost"]
             level = echo["level"]
-            main_stat = echo["main_stat"]
-            main_key = main_stat["key"]
-            main_val = main_stat["val"]
+            main_stat = echo["mainEntry"]  # 适配：已在 service 中处理
+            main_key = main_stat["name"]  # 适配：使用 "name"
+            main_val = main_stat["value"]  # 适配：使用 "value"
 
             self.ctx[f"声骸{main_key}"] = (
-                self.ctx.get(f"声骸{main_key}", 0) + main_val
+                    self.ctx.get(f"声骸{main_key}", 0) + main_val
             )
 
     def apply_echo_sub_stat(self):
         for echo in self.echo_list:
-            sub_stats = echo["sub_stats"]
+            sub_stats = echo["subEntry"]  # 适配：已在 service 中处理
             for sub_stat in sub_stats:
-                sub_key = sub_stat["key"]
-                sub_val = sub_stat["val"]
+                sub_key = sub_stat["key"]  # 适配：使用 "key"
+                sub_val = sub_stat["value"]  # 适配：使用 "value"
                 self.ctx[f"声骸{sub_key}"] = (
-                    self.ctx.get(f"声骸{sub_key}", 0) + sub_val
+                        self.ctx.get(f"声骸{sub_key}", 0) + sub_val
                 )
 
     def apply_echo_skill(self):
@@ -186,24 +205,24 @@ class Damage(DamageAbstract):
                 self.ctx[f"增益{key}"] = 0
 
             self.ctx[key] = (
-                self.ctx.get(f"角色{key}", 0)
-                + self.ctx.get(f"武器{key}", 0)
-                + self.ctx.get(f"声骸{key}", 0)
-                + self.ctx.get(f"套装{key}", 0)
-                + self.ctx.get(f"增益{key}", 0)
+                    self.ctx.get(f"角色{key}", 0)
+                    + self.ctx.get(f"武器{key}", 0)
+                    + self.ctx.get(f"声骸{key}", 0)
+                    + self.ctx.get(f"套装{key}", 0)
+                    + self.ctx.get(f"增益{key}", 0)
             )
 
         # total
         self.ctx["生命值"] = (
-            self.ctx["角色基础生命"] * (1 + self.ctx["生命"]) + self.ctx["生命值"]
+                self.ctx["角色基础生命"] * (1 + self.ctx["生命"]) + self.ctx["生命值"]
         )
         self.ctx["攻击力"] = (
-            (self.ctx["角色基础攻击"] + self.ctx["武器基础攻击"])
-            * (1 + self.ctx["攻击"])
-            + self.ctx["攻击力"]
+                (self.ctx["角色基础攻击"] + self.ctx["武器基础攻击"])
+                * (1 + self.ctx["攻击"])
+                + self.ctx["攻击力"]
         )
         self.ctx["防御力"] = (
-            self.ctx["角色基础防御"] * (1 + self.ctx["防御"]) + self.ctx["防御力"]
+                self.ctx["角色基础防御"] * (1 + self.ctx["防御"]) + self.ctx["防御力"]
         )
 
     def calc(self) -> Dict[str, Any]:

@@ -13,7 +13,7 @@ from ..utils.fonts import WavesFonts
 from ..utils.image_helpers import add_footer, crop_center_img
 from ..api.client import api_client
 # 导入服务模型
-from ..services.announcement_service import AnnItem
+from ...services.announcement_service import AnnItem
 
 # --- 导入完成 ---
 

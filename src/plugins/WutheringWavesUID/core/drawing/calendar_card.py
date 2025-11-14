@@ -15,9 +15,9 @@ from ..utils.image_helpers import (
 )
 from ..api.client import api_client
 # 导入 WikiService 以使用其 ID->Name 映射
-from ..services.wiki_service import wiki_service
+from ...services.wiki_service import wiki_service
 # 导入数据模型
-from ..services.calendar_service import CalendarData
+from ...services.calendar_service import CalendarData
 from ..api.ranking_api import PoolData
 
 # --- 导入完成 ---

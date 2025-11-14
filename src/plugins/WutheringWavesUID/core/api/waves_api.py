@@ -4,14 +4,41 @@ import json
 from typing import Dict, Any
 from .client import api_client
 from .models import APIResponse, LoginResponse, UserInfoResponse
-from ...config import plugin_config
+# --- 修复导入 ---
+from ... import plugin_config  # 正确: 从 __init__.py 导入实例
 
+
+# from ...config import plugin_config # 错误
+# --- 修复结束 ---
 
 class WavesAPI:
     """鸣潮API封装"""
 
     def __init__(self):
         self.base_url = plugin_config.WAVES_API_URL
+
+    # --- 新增方法 (来自 wutheringwaves_login/login.py) ---
+    async def get_captcha_code(self, phone: str) -> APIResponse:
+        """获取手机验证码"""
+        url = f"{self.base_url}get_captcha"
+        data = {"phone": phone, "source": 2}
+
+        result = await api_client.request("POST", url, json=data)
+
+        # 验证码 API 的 retcode 是 1
+        if result.get("retcode") == 1:
+            return APIResponse(
+                success=True,
+                data=result.get("data", {}),
+                msg=result.get("message", "验证码发送成功")
+            )
+        else:
+            return APIResponse(
+                success=False,
+                msg=result.get("message", "验证码发送失败")
+            )
+
+    # --- 新增方法结束 ---
 
     async def login(self, phone: str, code: str, did: str) -> LoginResponse:
         """手机号登录"""
@@ -38,23 +65,6 @@ class WavesAPI:
             return LoginResponse(
                 success=False,
                 msg=result.get("message", "登录失败")
-            )
-
-    async def get_captcha_code(self, phone: str) -> APIResponse:
-        """获取手机验证码"""
-        url = f"{self.base_url}get_captcha"
-        data = {"phone": phone, "source": 2}
-        result = await api_client.request("POST", url, json=data)
-        if result.get("retcode") == 1:
-            return APIResponse(
-                success=True,
-                data=result.get("data", {}),
-                msg=result.get("message", "验证码发送成功")
-            )
-        else:
-            return APIResponse(
-                success=False,
-                msg=result.get("message", "验证码发送失败")
             )
 
     async def get_user_info(self, cookie: str, uid: str) -> UserInfoResponse:
@@ -198,9 +208,8 @@ class WavesAPI:
                 msg=result.get("message", "获取失败")
             )
 
-    # --- 新增 资源统计 方法 ---
     async def get_period_info(self, cookie: str, uid: str) -> APIResponse:
-        """获取资源统计 (活跃度、月卡、星声)"""
+        """获取资源统计 (月卡、星声、活跃度)"""
         url = f"{self.base_url}game/period"
         headers = {"Cookie": cookie}
         params = {"uid": uid}
@@ -210,7 +219,6 @@ class WavesAPI:
             data=result.get("data", {}),
             msg=result.get("message", "获取失败")
         )
-    # --- 新增方法结束 ---
 
 
 waves_api = WavesAPI()

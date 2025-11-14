@@ -2,6 +2,7 @@
 
 from typing import Optional, Dict, Any, List
 import json
+from nonebot.log import logger
 
 from ..core.api.waves_api import waves_api
 from ..core.api.ranking_api import (
@@ -13,9 +14,24 @@ from ..core.api.ranking_api import (
 )
 from ..database import get_cache, set_cache
 
+# --- 修复导入 (框架 B) ---
+from ..core.damage_buff.buff_engine import DamageAttribute
+from ..core.damage_buff.load_scripts import WavesCharRegister, WavesWeaponRegister
+
+
+# --- 导入结束 ---
+
 
 class GameService:
     """游戏数据服务"""
+
+    def __init__(self):
+        # 预加载 框架 B (团队buff) 的所有计算脚本
+        try:
+            WavesCharRegister.load_all_script()
+            WavesWeaponRegister.load_all_script()
+        except Exception as e:
+            logger.error(f"Failed to load Framework B (Team Buff) scripts: {e}")
 
     # --- 现有的方法 (来自 waves_api) ---
 
@@ -202,4 +218,56 @@ class GameService:
             return result
         return None
 
-    # --- 移除了旧的 upload_panel_data 存根 ---
+    # --- 关键修改：重写 upload_panel_data ---
+    async def upload_panel_data(self, cookie: str, uid: str) -> str:
+        """
+        上传面板数据
+        (迁移自 wutheringwaves_master/__init__.py 的 upload_waves_info)
+        """
+
+        # 1. 获取原始角色数据
+        role_list_data = await self.get_role_info(cookie, uid)
+        if not role_list_data:
+            return "获取角色信息失败，无法上传"
+
+        raw_role_list = role_list_data.get("roleList", [])
+        if not raw_role_list:
+            return "角色列表为空，无法上传"
+
+        calculated_role_list = []
+
+        # 2. 遍历角色, 使用 框架 B 计算期望伤害
+        for char_data in raw_role_list:
+            try:
+                # (1) 注入 UID
+                char_data["uid"] = uid
+
+                # (2) 初始化 框架 B (团队buff)
+                # 这个 DamageAttribute 来自 core/damage_buff/buff_engine.py
+                attr_calc = DamageAttribute(char_data, uid)
+
+                # (3) 执行 框架 B 的 buff 计算
+                attr_calc.do_buff()
+
+                # (4) 获取 框架 B 的计算结果 (包含 "expected_damage")
+                # get_damage_data() 会将期望伤害写入 char_data
+                calculated_data = attr_calc.get_damage_data()
+
+                calculated_role_list.append(calculated_data)
+
+            except Exception as e:
+                char_name = char_data.get('name', char_data.get('id'))
+                logger.error(f"为角色 {char_name} (UID: {uid}) 计算期望伤害失败: {e}")
+                logger.exception(e)  # 打印完整堆栈
+                # 即使失败，也添加原始数据
+                calculated_role_list.append(char_data)
+
+        # 3. 构造最终上传数据
+        upload_payload = {
+            "uid": uid,
+            "role_list": calculated_role_list
+        }
+
+        # 4. 上传
+        result = await ranking_api.upload_data(upload_payload)
+        return result.msg

@@ -1,149 +1,100 @@
-from sqlalchemy import select, update, delete
-from nonebot_plugin_datastore import get_session
-from .models import WavesUser, WavesBind, WavesCache
-from datetime import datetime
+# nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/database.py
 
-# WavesUser 相关操作
-async def get_user_by_user_id(user_id: str, bot_id: str) -> WavesUser | None:
-    """通过用户ID获取用户"""
-    async with get_session() as session:
-        return await session.scalar(
-            select(WavesUser).where(
-                WavesUser.user_id == user_id,
-                WavesUser.bot_id == bot_id
-            )
-        )
+import asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, declarative_base
+from nonebot import get_driver
+from nonebot_plugin_localstore import get_data_file
 
-async def get_user_by_cookie(cookie: str) -> WavesUser | None:
-    """通过Cookie获取用户"""
-    async with get_session() as session:
-        return await session.scalar(
-            select(WavesUser).where(WavesUser.cookie == cookie)
-        )
+# --- 数据库设置 ---
+# 使用 nonebot_plugin_localstore 来获取数据库文件的标准路径
+db_file = get_data_file("WutheringWavesUID", "wws_uid_data.db")
+DB_URL = f"sqlite+aiosqlite:///{db_file}"
 
-async def create_or_update_user(
-    user_id: str,
-    bot_id: str,
-    uid: str,
-    cookie: str,
-    did: str
-) -> WavesUser:
-    """创建或更新用户"""
-    async with get_session() as session:
-        user = await session.scalar(
-            select(WavesUser).where(
-                WavesUser.user_id == user_id,
-                WavesUser.bot_id == bot_id
-            )
-        )
+# 创建 SQLAlchemy 引擎
+engine = create_async_engine(DB_URL, future=True, echo=False)
 
-        if user:
-            user.uid = uid
-            user.cookie = cookie
-            user.did = did
-            user.updated_at = datetime.now()
-        else:
-            user = WavesUser(
-                user_id=user_id,
-                bot_id=bot_id,
-                uid=uid,
-                cookie=cookie,
-                did=did
-            )
-            session.add(user)
+# 异步 Session 工厂
+async_session = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
-        await session.commit()
-        return user
+# 关键：定义所有模型都将继承的 Base
+Base = declarative_base()
 
-# WavesBind 相关操作
-async def get_bind_by_user(user_id: str, bot_id: str) -> WavesBind | None:
-    """获取用户绑定"""
-    async with get_session() as session:
-        return await session.scalar(
-            select(WavesBind).where(
-                WavesBind.user_id == user_id,
-                WavesBind.bot_id == bot_id,
-                WavesBind.is_main == True
-            )
-        )
 
-async def bind_user(
-    user_id: str,
-    bot_id: str,
-    game_uid: str,
-    group_id: str = ""
-) -> bool:
-    """绑定用户UID"""
-    try:
-        async with get_session() as session:
-            # 取消现有主绑定
-            await session.execute(
-                update(WavesBind)
-                .where(
-                    WavesBind.user_id == user_id,
-                    WavesBind.bot_id == bot_id,
-                    WavesBind.is_main == True
-                )
-                .values(is_main=False)
-            )
+async def init_db():
+    """
+    异步初始化数据库, 创建所有表格
+    """
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-            # 创建新绑定
-            bind = WavesBind(
-                user_id=user_id,
-                bot_id=bot_id,
-                game_uid=game_uid,
-                group_id=group_id,
-                is_main=True
-            )
-            session.add(bind)
 
-            await session.commit()
-            return True
-    except Exception:
-        return False
+# --- 缓存设置 (使用 Redis) ---
+# 这是所有 Service 文件 (game_service, character_service 等) 所需的
+# get_cache 和 set_cache。
 
-async def get_uid_by_user(user_id: str, bot_id: str) -> str | None:
-    """通过用户ID获取UID"""
-    bind = await get_bind_by_user(user_id, bot_id)
-    return bind.game_uid if bind else None
+try:
+    import redis.asyncio as redis
+    from .. import plugin_config
 
-# WavesCache 相关操作
-async def get_cache(key: str) -> str | None:
-    """获取缓存"""
-    async with get_session() as session:
-        cache = await session.scalar(
-            select(WavesCache).where(
-                WavesCache.key == key,
-                WavesCache.expires_at > datetime.now()
-            )
-        )
-        return cache.value if cache else None
+    # 从全局配置读取 Redis 连接信息
+    redis_host = getattr(get_driver().config, "redis_host", "localhost")
+    redis_port = getattr(get_driver().config, "redis_port", 6379)
+    redis_db = getattr(get_driver().config, "redis_database", 0)
+    redis_password = getattr(get_driver().config, "redis_password", None)
 
-async def set_cache(key: str, value: str, expires_in: int = 3600):
-    """设置缓存"""
-    async with get_session() as session:
-        # 删除过期缓存
-        await session.execute(
-            delete(WavesCache).where(WavesCache.expires_at <= datetime.now())
-        )
+    # 创建 Redis 连接池
+    _redis_pool = redis.ConnectionPool(
+        host=redis_host,
+        port=redis_port,
+        db=redis_db,
+        password=redis_password,
+        decode_responses=True  # 自动解码
+    )
+    _redis_client = redis.Redis(connection_pool=_redis_pool)
+    _CACHE_PREFIX = "wws_uid:"
 
-        # 更新或插入新缓存
-        cache = await session.scalar(
-            select(WavesCache).where(WavesCache.key == key)
-        )
 
-        expires_at = datetime.now().timestamp() + expires_in
-        expires_at = datetime.fromtimestamp(expires_at)
+    async def get_cache(key: str) -> Optional[str]:
+        """(Redis) 获取缓存"""
+        try:
+            return await _redis_client.get(f"{_CACHE_PREFIX}{key}")
+        except Exception as e:
+            logger.error(f"Redis get_cache failed: {e}")
+            return None
 
-        if cache:
-            cache.value = value
-            cache.expires_at = expires_at
-        else:
-            cache = WavesCache(
-                key=key,
-                value=value,
-                expires_at=expires_at
-            )
-            session.add(cache)
 
-        await session.commit()
+    async def set_cache(key: str, value: str, expires_in: int):
+        """(Redis) 设置缓存"""
+        try:
+            await _redis_client.setex(f"{_CACHE_PREFIX}{key}", expires_in, value)
+        except Exception as e:
+            logger.error(f"Redis set_cache failed: {e}")
+
+except ImportError:
+    from nonebot.log import logger
+
+    logger.warning("Redis 未安装 (pip install redis[hiredis]), 缓存功能将不可用。")
+
+
+    # 创建一个空的 get/set_cache，防止插件崩溃
+    async def get_cache(key: str) -> Optional[str]:
+        return None
+
+
+    async def set_cache(key: str, value: str, expires_in: int):
+        pass
+except Exception as e:
+    from nonebot.log import logger
+
+    logger.error(f"初始化 Redis 缓存失败: {e}，缓存功能将不可用。")
+
+
+    async def get_cache(key: str) -> Optional[str]:
+        return None
+
+
+    async def set_cache(key: str, value: str, expires_in: int):
+        pass

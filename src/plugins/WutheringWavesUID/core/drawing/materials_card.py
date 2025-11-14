@@ -13,9 +13,9 @@ from ..utils.fonts import WavesFonts
 from ..utils.image_helpers import add_footer, get_waves_bg, get_square_avatar
 from ..api.client import api_client
 # 导入 WikiService 以使用其 ID->Name 映射
-from ..services.wiki_service import wiki_service
+from ...services.wiki_service import wiki_service
 # 导入日历数据模型
-from ..services.calendar_service import CalendarData
+from ...services.calendar_service import CalendarData
 
 # --- 导入完成 ---
 
