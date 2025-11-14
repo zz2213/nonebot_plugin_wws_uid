@@ -297,6 +297,66 @@ user = await user_service.get_user(user_id, bot_id)
 
 [✅] 帮助菜单 (wutheringwaves_help)
 
-[ ] 配置 (wutheringwaves_config)
+[✅] 配置 (wutheringwaves_config)
 
-[ ] 登录逻辑 (功能增强)
+[✅] 登录逻辑 (功能增强)
+
+1. 待办 (TODO)：核心逻辑集成
+这些是你在代码里看到的 TODO，它们是让现有功能变得完善所必需的：
+
+[ ] 别名服务集成：
+
+问题：在 handlers/character.py, handlers/ranking.py, handlers/echo_list.py, handlers/wiki.py 中，我为了方便，硬编码了一个 role_id_map = {"忌炎": 1404, ...}。
+
+待办：我们必须替换掉这个 map，改成实际调用我们已经迁移好的 alias_service.find_char_alias() 来查找 ID。
+
+[ ] 伤害计算框架集成：
+
+问题：在 services/character_service.py 中，我注释掉了 _refresh_char_detail 函数的调用。
+
+待办：我们需要重构这个函数，使其能正确使用我们迁移的 core/damage 框架，并加载 core/data/damage/ 目录下的角色脚本来计算详细属性。这是目前最复杂的遗留任务。
+
+[ ] 面板上传逻辑：
+
+问题：services/game_service.py 中的 upload_panel_data 方法目前只是一个存根 (stub)。
+
+待办：我们需要将 WutheringWavesUID1/wutheringwaves_master/__init__.py 中的 upload_waves_info 完整逻辑迁移过来。
+
+[ ] 动态配置系统：
+
+问题：我们只迁移了静态的 .env 配置。
+
+待办：原项目的 wutheringwaves_config 允许管理员通过指令（如 设置 体力推送 开启）动态修改设置。这需要一个全新的 Service 来管理一个 JSON 配置文件，我们尚未迁移。
+
+2. 缺失的模块
+这些是原项目中存在，但我们尚未开始迁移的独立功能：
+
+[ ] 资源统计 (wutheringwaves_period)：
+
+功能：绘制玩家的每日/每周活跃度、月卡、星声等资源的统计图。
+
+依赖：需要 waves_api 添加新端点（game/period）并绘图。
+
+[ ] 游戏公告 (wutheringwaves_ann)：
+
+功能：获取并展示当前的B服/官服游戏公告。
+
+依赖：需要新的 API 封装和绘图逻辑。
+
+[ ] 兑换码 (wutheringwaves_code)：
+
+功能：自动从外部源获取最新的游戏兑换码。
+
+依赖：需要一个新的 Service 来爬取兑换码。
+
+[ ] 卡池统计 (wutheringwaves_up)：
+
+功能：统计当前 UP 卡池的抽取情况。
+
+依赖：ranking_api 的 get_pool_list（已存在）和新的绘图逻辑。
+
+[ ] 完整日历 (wutheringwaves_calendar)：
+
+问题：我们只迁移了“每日材料” 部分。
+
+待办：完整的 draw_calendar_card.py 还需要（尚未迁移的）卡池信息和活动信息。
