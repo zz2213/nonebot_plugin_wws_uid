@@ -124,8 +124,6 @@ class WavesAPI:
           msg=result.get("message", "获取失败")
       )
 
-  # --- 新增深渊相关方法 ---
-
   async def get_tower_info(self, cookie: str, uid: str) -> APIResponse:
     """获取深境之塔信息"""
     url = f"{self.base_url}tower/info"
@@ -157,10 +155,36 @@ class WavesAPI:
     params = {"uid": uid}
     result = await api_client.request("GET", url, headers=headers, params=params)
     return APIResponse(
-        success=result.get("retcode") == 0,
+        success=True,
         data=result.get("data", {}),
         msg=result.get("message", "获取失败")
     )
+
+  # --- 新增抽卡相关方法 ---
+  async def get_gacha_logs(
+      self, base_url: str, params: Dict[str, Any]
+  ) -> APIResponse:
+    """
+    获取抽卡记录
+    :param base_url: 从抽卡链接中解析出的 API 域名
+    :param params: 抽卡 API 所需的参数
+    """
+    url = f"{base_url}/api/gachaInfo/list"
+    # 注意：抽卡 API 不需要 Cookie
+    result = await api_client.request("GET", url, params=params)
+
+    # 抽卡 API 的返回结构不同
+    if result.get("code") == 0 or result.get("code") == "0":
+      return APIResponse(
+          success=True,
+          data=result.get("data", []),  # 数据在 data 字段
+          msg=result.get("message", "获取成功")
+      )
+    else:
+      return APIResponse(
+          success=False,
+          msg=result.get("message", "获取失败")
+      )
   # --- 新增方法结束 ---
 
 

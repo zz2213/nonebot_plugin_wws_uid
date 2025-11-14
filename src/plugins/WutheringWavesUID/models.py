@@ -1,41 +1,44 @@
-from sqlalchemy import String, Text, DateTime, Boolean, Integer
-from sqlalchemy.orm import Mapped, mapped_column
-from datetime import datetime
-from nonebot_plugin_datastore import get_base
+# nonebot_plugin_wws_uid/src/plugins/WutheringWavesUID/models.py
 
-Base = get_base()
+from sqlalchemy import Column, String, Integer, BigInteger, Boolean, Text, Index
+from .database import Base
 
-class WavesUser(Base):
-    """鸣潮用户表"""
-    __tablename__ = "waves_users"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(32), index=True)
-    bot_id: Mapped[str] = mapped_column(String(32))
-    uid: Mapped[str] = mapped_column(String(32))
-    cookie: Mapped[str] = mapped_column(Text)
-    did: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+class User(Base):
+  """用户信息"""
+  __tablename__ = "wuthering_waves_user"
+  id = Column(Integer, primary_key=True, index=True)
+  user_id = Column(String(255), unique=True, index=True)
+  user_token = Column(String(255))
+  current_bind_uid = Column(String(255))
 
-class WavesBind(Base):
-    """用户绑定表"""
-    __tablename__ = "waves_binds"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(32), index=True)
-    bot_id: Mapped[str] = mapped_column(String(32))
-    game_uid: Mapped[str] = mapped_column(String(32))
-    group_id: Mapped[str] = mapped_column(String(32), default="")
-    is_main: Mapped[bool] = mapped_column(default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+class UserBind(Base):
+  """用户绑定的UID信息"""
+  __tablename__ = "wuthering_waves_user_bind"
+  id = Column(Integer, primary_key=True, index=True)
+  user_id = Column(String(255), index=True)
+  uid = Column(String(255), index=True)
+  cookie = Column(Text)
 
-class WavesCache(Base):
-    """数据缓存表"""
-    __tablename__ = "waves_cache"
+  __table_args__ = (
+    Index("ix_user_id_uid", "user_id", "uid"),
+  )
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    key: Mapped[str] = mapped_column(String(128), unique=True, index=True)
-    value: Mapped[str] = mapped_column(Text)
-    expires_at: Mapped[datetime] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+# --- 新增模型 ---
+class WavesGacha(Base):
+  """抽卡记录"""
+  __tablename__ = "waves_gacha"
+  id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+  user_id = Column(String(255), index=True)
+  uid = Column(String(255), index=True)
+  gacha_type = Column(String(32), index=True)
+  gacha_name = Column(String(255))
+  item_id = Column(String(32), index=True)
+  item_name = Column(String(255))
+  item_type = Column(String(32))
+  rarity = Column(Integer)
+  time = Column(String(32))
+  message_id = Column(String(255), unique=True, index=True)  # 使用 messageId 作为唯一键
+# --- 新增模型结束 ---

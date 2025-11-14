@@ -282,9 +282,9 @@ user = await user_service.get_user(user_id, bot_id)
 
 [✅]迁移探索度 (wutheringwaves_explore)
 
-[ ] 迁移深渊 (wutheringwaves_abyss)
+[✅]迁移深渊 (wutheringwaves_abyss)
 
-[ ] 迁移抽卡记录 (wutheringwaves_gachalog)
+[✅] 迁移抽卡记录 (wutheringwaves_gachalog)
 
 [ ] 迁移数据统计 (wutheringwaves_query) (持有率、出场率)
 
