@@ -2,7 +2,6 @@
 
 from nonebot.plugin import PluginMetadata
 from nonebot import get_driver
-import asyncio # <-- 保留导入
 
 from .config import Config
 
@@ -21,8 +20,9 @@ __plugin_meta__ = PluginMetadata(
 
 driver = get_driver()
 global_config = driver.config
-# 适配修改：使用 parse_obj 来正确加载 Pydantic 的 env_prefix 配置
-plugin_config = Config.parse_obj(global_config)
+# 修复：使用 .dict() 或 .model_dump() 将全局配置对象转换为字典，
+# 以解决 Pydantic v2 的兼容性问题，并正确应用 env_prefix。
+plugin_config = Config.parse_obj(global_config.dict())
 
 
 # --- 修复：将 database.init_db() 移至 on_startup ---

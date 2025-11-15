@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import nonebot
 from nonebot.adapters.onebot.v11 import Adapter as OneBotV11Adapter
-import asyncio
+
 
 async def init_database():
     """确保数据库初始化"""
     try:
         from nonebot_plugin_datastore import get_session
-        from plugins.WutheringWavesUID.models import Base
+        from my_wuthering_bot.src.plugins.WutheringWavesUID import Base
 
         # 测试数据库连接
         async with get_session() as session:
@@ -52,7 +52,7 @@ def init():
 
         # 检查鸣潮插件状态
         try:
-            from plugins.WutheringWavesUID.database import get_uid_by_user
+            from my_wuthering_bot.src.plugins.WutheringWavesUID import get_uid_by_user
             print("✅ 鸣潮插件数据库模块加载正常")
         except Exception as e:
             print(f"❌ 鸣潮插件数据库模块加载失败: {e}")
