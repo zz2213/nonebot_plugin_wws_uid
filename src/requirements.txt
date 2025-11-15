@@ -1,9 +1,23 @@
-nonebot2>=2.0.0
+# NoneBot 核心依赖和 OneBot V11 适配器
+nonebot2>=2.0
+nonebot-adapter-onebot>=2.0.0
 nonebot-adapter-onebot11>=2.0.0
-nonebot-plugin-datastore>=1.0.0
-httpx>=0.24.0
-qrcode>=7.0
-pillow>=10.0.0
+
+# 插件依赖库 (基于您的代码导入)
+pydantic>=2.0          # Pydantic 模型解析 (配置、API模型)
+httpx                  # 异步 HTTP 请求 (API 客户端)
+SQLAlchemy             # 数据库 ORM (异步数据库操作)
+aiosqlite              # SQLite 异步驱动
+redis                  # 异步 Redis 客户端 (缓存)
+aiofiles               # 异步文件 I/O (动态配置存储)
+async-timeout          # 异步超时管理 (登录流程)
+Pillow                 # 图像处理 (用于绘图和二维码生成)
+qrcode                 # 二维码生成
+psutil                 # 系统状态信息获取 (状态查询功能)
 jinja2>=3.0.0
 fastapi>=0.68.0
 uvicorn>=0.15.0
+
+# NoneBot 插件生态支持
+nonebot-plugin-localstore # 本地数据存储路径管理
+nonebot-plugin-datastore  # NoneBot 官方数据存储插件 (之前 bot.py 中导入)
