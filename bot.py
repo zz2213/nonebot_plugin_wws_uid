@@ -30,7 +30,7 @@ def init():
 
     # 加载插件
     nonebot.load_plugin("nonebot_plugin_datastore")  # 显式加载数据存储插件
-    nonebot.load_plugins("src/plugins")
+    nonebot.load_plugins("src/plugins1")
     app = nonebot.get_app()
 
     # 添加启动事件
@@ -39,18 +39,6 @@ def init():
         print("=" * 50)
         print("鸣潮测试机器人启动成功!")
         print(f"访问地址: http://localhost:8080")
-
-        # 初始化数据库
-        await init_database()
-
-        # 检查鸣潮插件状态
-        try:
-            from my_wuthering_bot.src.plugins.WutheringWavesUID import get_uid_by_user
-            print("✅ 鸣潮插件数据库模块加载正常")
-        except Exception as e:
-            print(f"❌ 鸣潮插件数据库模块加载失败: {e}")
-
-        print("=" * 50)
 
     return app
 
