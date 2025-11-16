@@ -37,6 +37,7 @@ async def call_bot(msg: MessageSend):
         return
     if msg.content is None or msg.target_id is None or msg.target_type is None:
         return
+    logger.info("返回消息："+str(msg))
     await protocol.send_message(msg.content, msg.target_id, msg.target_type)
 
 

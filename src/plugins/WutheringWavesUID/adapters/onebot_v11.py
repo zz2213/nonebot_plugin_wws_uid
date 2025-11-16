@@ -223,10 +223,6 @@ class OneBotV11Protocol(AbstractProtocol, protocol_name="onebot"):
         msg = None
         if segment.is_text():
             data: str = segment.data["text"]
-
-            # ------------------------------------------------
-            # MODIFIED: 还原剥离命令前缀的逻辑
-            # ------------------------------------------------
             if index in (0, 1):
                 for word in command_start:
                     _data = data.lstrip()  # 使用 lstrip 替代 strip

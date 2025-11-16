@@ -6,7 +6,13 @@ from nonebot.adapters.onebot.v11 import Adapter as OneBotV11Adapter
 def init():
     """初始化机器人"""
     # 初始化 NoneBot
-    nonebot.init()
+    nonebot.init( host="0.0.0.0",  # 监听所有网络接口
+    port=8080,
+    # 添加CORS相关配置
+    extra={
+        "allow_origins": ["*"],
+        "allow_credentials": True,
+    })
 
     # 注册适配器
     driver = nonebot.get_driver()
